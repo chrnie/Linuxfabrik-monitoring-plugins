@@ -26,7 +26,7 @@ from lib.globals import STATE_OK, STATE_UNKNOWN, STATE_WARN
 __author__ = """
 Linuxfabrik GmbH, Zurich/Switzerland;
 """
-__version__ = '2026081301'
+__version__ = '2026081302'
 
 DESCRIPTION = """Monitors a Redis server via the INFO command. Reports memory usage, fragmentation ratio,
 keyspace hit rate, connected clients, replication status, and persistence state. Alerts
@@ -78,6 +78,14 @@ def parse_args():
         'Default: %(default)s',
         dest='CACERT',
         default=DEFAULT_CACERT,
+    )
+
+    parser.add_argument(
+        '--cert',
+        help='Client certificate file to authenticate with. '
+        'Required if the server is configured with `tls-auth-clients yes`. '
+        'Requires `--tls` and `--key`.',
+        dest='CERT',
     )
 
     parser.add_argument(
@@ -143,6 +151,13 @@ def parse_args():
         dest='IGNORE_THP',
         default=DEFAULT_IGNORE_THP,
         action='store_true',
+    )
+
+    parser.add_argument(
+        '--key',
+        help='Private key file matching `--cert`. '
+        'Requires `--tls` and `--cert`.',
+        dest='KEY',
     )
 
     parser.add_argument(
@@ -251,6 +266,10 @@ def main():
             base_cmd += ['-a', args.PASSWORD]
     if args.TLS:
         base_cmd += ['--tls', '--cacert', args.CACERT]
+        if args.CERT:
+            base_cmd += ['--cert', args.CERT]
+        if args.KEY:
+            base_cmd += ['--key', args.KEY]
 
     # fetch data using `x-cli info default`
     if args.TEST is None:
