@@ -1,0 +1,25 @@
+{
+    "host": {
+        "arch": "amd64",
+        "cpus": 8,
+        "eventLogger": "journald",
+        "logDriver": "journald",
+        "memTotal": 32913014784
+    },
+    "registries": {},
+    "store": {
+        "containerStore": {
+            "number": 3,
+            "paused": 0,
+            "running": 2,
+            "stopped": 1
+        },
+        "graphDriverName": "overlay",
+        "imageStore": {
+            "number": 7
+        }
+    },
+    "version": {
+        "Version": "5.8.4"
+    }
+}

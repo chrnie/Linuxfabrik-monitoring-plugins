@@ -15,9 +15,17 @@ sys.path.insert(0, '..')
 import unittest
 
 import lib.lftest
-from lib.globals import STATE_CRIT, STATE_OK
+from lib.globals import STATE_CRIT, STATE_OK, STATE_UNKNOWN
 
 TESTS = [
+    {
+        # a check that may not talk to the engine says nothing about the engine:
+        # it is deployed wrong, not broken, so it must not raise a false alarm
+        'id': 'unknown-no-permission',
+        'test': ',stderr/permission-denied,125',
+        'assert-retc': STATE_UNKNOWN,
+        'assert-in': ['No permission to talk to the container engine'],
+    },
     {
         'id': 'ok-no-containers',
         'test': 'stdout/no-containers,,0',
@@ -35,8 +43,8 @@ TESTS = [
             '------------------+-------+------',
             'traefik_traefik.2 ! 0.0   ! 0.0',
             # per-container perfdata (https://github.com/Linuxfabrik/monitoring-plugins/issues/1104)
-            "'traefik_traefik.2_cpu_usage'=0.0%",
-            "'traefik_traefik.2_mem_usage'=0.0%",
+            "'traefik_traefik_2_cpu_usage'=0.0%",
+            "'traefik_traefik_2_mem_usage'=0.0%",
         ],
     },
     {
@@ -49,8 +57,8 @@ TESTS = [
             'Container                                   ! CPU % ! Mem %',
             '--------------------------------------------+-------+------',
             'traefik_traefik.2.1idw12p2yqpxutlzkcwign4at ! 0.0   ! 0.0',
-            "'traefik_traefik.2.1idw12p2yqpxutlzkcwign4at_cpu_usage'=0.0%",
-            "'traefik_traefik.2.1idw12p2yqpxutlzkcwign4at_mem_usage'=0.0%",
+            "'traefik_traefik_2_1idw12p2yqpxutlzkcwign4at_cpu_usage'=0.0%",
+            "'traefik_traefik_2_1idw12p2yqpxutlzkcwign4at_mem_usage'=0.0%",
         ],
     },
     {
@@ -83,8 +91,8 @@ TESTS = [
             'runner-7ayh6h5f-project-107-concurrent-0-37b2c7aee9359db9-build     ! 95.0  ! 1.2',
             'runner-7ayh6h5f-project-19-concurrent-0-99f0211c36d59d01-build      ! 59.5  ! 1.0',
             'runner-7ayh6h5f-project-49-concurrent-0-e180afe41fc754dc-predefined ! 79.5  ! 0.1',
-            "'runner-7ayh6h5f-project-107-concurrent-0-37b2c7aee9359db9-build_cpu_usage'=95.0%",
-            "'runner-7ayh6h5f-project-49-concurrent-0-e180afe41fc754dc-predefined_mem_usage'=0.1%",
+            "'runner_7ayh6h5f_project_107_concurrent_0_37b2c7aee9359db9_build_cpu_usage'=95.0%",
+            "'runner_7ayh6h5f_project_49_concurrent_0_e180afe41fc754dc_predefined_mem_usage'=0.1%",
         ],
     },
     {

@@ -12,6 +12,7 @@
 
 import argparse
 import json
+import re
 import sys
 
 import lib.args
@@ -24,7 +25,7 @@ import lib.txt
 from lib.globals import STATE_CRIT, STATE_OK, STATE_UNKNOWN, STATE_WARN
 
 __author__ = 'Linuxfabrik GmbH, Zurich/Switzerland'
-__version__ = '2026081001'
+__version__ = '2026081301'
 
 DESCRIPTION = """Checks the lifecycle and health of Docker containers: the container status
 (running, exited, paused, ...), the result of the container health check (healthy,
@@ -145,7 +146,8 @@ def parse_args():
 
     parser.add_argument(
         '--status',
-        help='Desired container status, for example `running`, `exited` or `paused`. '
+        help='Desired container status. Docker reports one of `created`, `running`, '
+        '`paused`, `restarting`, `removing`, `exited` and `dead`. '
         'A container whose status differs is reported as CRITICAL. '
         'If not specified, the status is reported but not alerted on. '
         'Default: %(default)s',
@@ -190,6 +192,25 @@ def parse_args():
     return args
 
 
+def get_engine_error(stderr, stdout=''):
+    """Return `(message, state)` for a command that could not reach the container
+    engine. A refused permission is a problem of how this check is deployed, not of
+    the engine: the engine answers other callers just fine, this one is only not
+    allowed to ask, so the check cannot say anything and reports UNKNOWN. Everything
+    else, a socket that is not there or an engine that does not answer, is the
+    outage this check exists to report.
+    """
+    text = f'{stderr}\n{stdout}'.strip()
+    if 'permission denied' in text.lower():
+        return (
+            'No permission to talk to the container engine, so nothing can be said'
+            ' about it. Run the check as root, or deploy the sudoers file that ships'
+            f' with the plugins.\n{text}',
+            STATE_UNKNOWN,
+        )
+    return (text, STATE_CRIT)
+
+
 def keep_container(name, match_patterns, ignore_patterns):
     """Return True if `name` should be kept by the --match / --ignore filter pair,
     False if it should be dropped. Include first, then exclude: a name passes if it
@@ -202,12 +223,21 @@ def keep_container(name, match_patterns, ignore_patterns):
     return not any(p.search(name) for p in ignore_patterns)
 
 
+# A swarm task container is named `<service>.<slot or node id>.<task id>`, and the
+# task id is 25 base36 characters (swarmkit identity.NewID). Only that suffix is cut
+# off, so a container an admin named `backup.daily` keeps the name they gave it, and
+# two such containers do not collapse into one row.
+TASK_ID_REGEX = re.compile(r'\.[0-9a-z]{25}$')
+
+
 def shorten(name):
     """
     >>> shorten('traefik_traefik.2.1idw12p2yqpxutlzkcwign4at')
     traefik_traefik.2
+    >>> shorten('backup.daily')
+    backup.daily
     """
-    return name.rsplit('.', 1)[0]
+    return TASK_ID_REGEX.sub('', name)
 
 
 def get_health(state):
@@ -233,8 +263,9 @@ def get_health_state(health):
 def get_uptime(container_state, status, now):
     """Return the running container's uptime in seconds, or None if it is not running
     or carries no usable start timestamp. `StartedAt` is an RFC 3339 string; a container
-    that never started carries the zero value `0001-01-01T00:00:00...`. Only the seconds
-    part is parsed, so fractional seconds and the trailing `Z` are ignored.
+    that never started carries the zero value `0001-01-01T00:00:00...`. The offset the
+    timestamp carries is kept: Docker stamps it in UTC, Podman in the local time of the
+    host, so reading it as UTC would move the uptime by the offset of the host.
     """
     if status != 'running':
         return None
@@ -242,10 +273,12 @@ def get_uptime(container_state, status, now):
     if not started or started.startswith('0001'):
         return None
     try:
-        started_epoch = lib.time.timestr2epoch(started[0:19] + 'Z', pattern='iso8601')
+        started_epoch = lib.time.timestr2epoch(started, pattern='iso8601')
     except ValueError:
         return None
-    return now - started_epoch
+    # whole seconds: the timestamp carries nanoseconds, and an uptime rendered down
+    # to microseconds ("2m 348ms") says nothing an admin acts on
+    return int(now - started_epoch)
 
 
 def main():
@@ -282,16 +315,14 @@ def main():
             lib.shell.shell_exec(['docker', 'ps', '--all', '--quiet', '--no-trunc']),
         )
         if retc != 0:
-            lib.base.oao(f'{stderr}\n{stdout}', STATE_CRIT)
+            lib.base.oao(*get_engine_error(stderr, stdout))
         container_ids = stdout.split()
         if container_ids:
             stdout, stderr, retc = lib.base.coe(
                 lib.shell.shell_exec(['docker', 'inspect', *container_ids]),
             )
-            if retc != 0:
-                lib.base.oao(f'{stderr}\n{stdout}', STATE_CRIT)
         else:
-            stdout = '[]'
+            stdout, stderr, retc = '[]', '', 0
     else:
         # do not call the command, put in test data
         stdout, stderr, retc = lib.lftest.test(args.TEST)
@@ -299,6 +330,16 @@ def main():
     try:
         inspected = json.loads(stdout)
     except Exception:
+        inspected = None
+
+    if not isinstance(inspected, list):
+        # a container that is removed between being listed and being inspected makes
+        # the command fail while it still prints every container it did find, which
+        # happens on any host running short-lived containers. Those containers are
+        # reported on; only an answer without a single usable container means the
+        # engine could not be asked at all.
+        if retc != 0:
+            lib.base.oao(*get_engine_error(stderr, stdout))
         lib.base.cu(
             'Unable to parse docker inspect output as JSON.'
             ' If you are using Podman, use the podman-container check instead.'

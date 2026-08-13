@@ -24,7 +24,7 @@ import lib.txt
 from lib.globals import STATE_CRIT, STATE_OK, STATE_UNKNOWN
 
 __author__ = 'Linuxfabrik GmbH, Zurich/Switzerland'
-__version__ = '2026081001'
+__version__ = '2026081301'
 
 DESCRIPTION = """Lists the container images on a host and checks how old they are. Reports each
 image's repository tag, age and size, and alerts when an image is older than the
@@ -143,6 +143,25 @@ def parse_args():
     return args
 
 
+def get_engine_error(stderr, stdout=''):
+    """Return `(message, state)` for a command that could not reach the container
+    engine. A refused permission is a problem of how this check is deployed, not of
+    the engine: the engine answers other callers just fine, this one is only not
+    allowed to ask, so the check cannot say anything and reports UNKNOWN. Everything
+    else, a socket that is not there or an engine that does not answer, is the
+    outage this check exists to report.
+    """
+    text = f'{stderr}\n{stdout}'.strip()
+    if 'permission denied' in text.lower():
+        return (
+            'No permission to talk to the container engine, so nothing can be said'
+            ' about it. Run the check as root, or deploy the sudoers file that ships'
+            f' with the plugins.\n{text}',
+            STATE_UNKNOWN,
+        )
+    return (text, STATE_CRIT)
+
+
 def keep_image(name, match_patterns, ignore_patterns):
     """Return True if `name` should be kept by the --match / --ignore filter pair,
     False if it should be dropped. Include first, then exclude: a name passes if it
@@ -177,16 +196,18 @@ def get_image_name(image):
 
 def get_age(created, now):
     """Return the image age in seconds, or None if the `Created` timestamp is missing or
-    unusable. `Created` is an RFC 3339 string; only the seconds part is parsed, so
-    fractional seconds and the trailing `Z` (UTC) are handled without extra libraries.
+    unusable. `Created` is an RFC 3339 string and states when the image was built, not
+    when it was pulled. The offset it carries is kept rather than assumed to be UTC.
     """
     if not created or created.startswith('0001'):
         return None
     try:
-        created_epoch = lib.time.timestr2epoch(created[0:19] + 'Z', pattern='iso8601')
+        created_epoch = lib.time.timestr2epoch(created, pattern='iso8601')
     except ValueError:
         return None
-    return now - created_epoch
+    # whole seconds: the timestamp carries nanoseconds, and an age rendered down to
+    # microseconds says nothing an admin acts on
+    return int(now - created_epoch)
 
 
 def main():
@@ -228,17 +249,15 @@ def main():
             lib.shell.shell_exec(['docker', 'images', '--quiet', '--no-trunc']),
         )
         if retc != 0:
-            lib.base.oao(f'{stderr}\n{stdout}', STATE_CRIT)
+            lib.base.oao(*get_engine_error(stderr, stdout))
         # `docker images -q` repeats an ID once per tag; inspect each ID only once
         image_ids = sorted(set(stdout.split()))
         if image_ids:
             stdout, stderr, retc = lib.base.coe(
                 lib.shell.shell_exec(['docker', 'image', 'inspect', *image_ids]),
             )
-            if retc != 0:
-                lib.base.oao(f'{stderr}\n{stdout}', STATE_CRIT)
         else:
-            stdout = '[]'
+            stdout, stderr, retc = '[]', '', 0
         now = lib.time.now()
     else:
         # do not call the command, put in test data
@@ -249,6 +268,16 @@ def main():
     try:
         inspected = json.loads(stdout)
     except Exception:
+        inspected = None
+
+    if not isinstance(inspected, list):
+        # an image that is removed between being listed and being inspected makes the
+        # command fail while it still prints every image it did find, which is what a
+        # cleanup job running next to the check looks like. Those images are reported
+        # on; only an answer without a single usable image means the engine could not
+        # be asked at all.
+        if retc != 0:
+            lib.base.oao(*get_engine_error(stderr, stdout))
         lib.base.cu(
             'Unable to parse docker image inspect output as JSON.'
             ' If you are using Podman, use the podman-image check instead.'

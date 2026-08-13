@@ -15,9 +15,37 @@ sys.path.insert(0, '..')
 import unittest
 
 import lib.lftest
-from lib.globals import STATE_CRIT, STATE_OK, STATE_WARN
+from lib.globals import STATE_CRIT, STATE_OK, STATE_UNKNOWN, STATE_WARN
 
 TESTS = [
+    {
+        # the engine stamps nanoseconds, and an uptime rendered down to microseconds
+        # ("2m 348ms") is noise. Whole seconds, the way the engine itself reports it.
+        'id': 'ok-uptime-in-whole-seconds',
+        'test': 'stdout/fresh-container,,0',
+        'assert-retc': STATE_OK,
+        'assert-in': ['just-started ! running ! -      ! 0        ! 2m     ! [OK]'],
+        # what the raw difference would render as
+        'assert-not-in': ['347ms'],
+    },
+    {
+        # only the 25-character task id a swarm appends is cut off. Two containers
+        # an admin named with a dot stay two containers instead of collapsing into
+        # one row, and one metric name, that reports whatever came last
+        'id': 'ok-dotted-names-kept',
+        'test': 'stdout/dotted-names,,0',
+        'assert-retc': STATE_OK,
+        'assert-in': ['backup.daily', 'backup.hourly', 'stackdemo_redis.1'],
+        'assert-not-in': ['stackdemo_redis.1.7wvfsd0eiepbhcv2p4kwbxm2q'],
+    },
+    {
+        # a check that may not talk to the engine says nothing about the engine:
+        # it is deployed wrong, not broken, so it must not raise a false alarm
+        'id': 'unknown-no-permission',
+        'test': ',stderr/permission-denied,125',
+        'assert-retc': STATE_UNKNOWN,
+        'assert-in': ['No permission to talk to the container engine'],
+    },
     {
         'id': 'ok-empty-no-containers',
         'test': 'stdout/empty-no-containers,,0',
@@ -45,6 +73,35 @@ TESTS = [
         'assert-in': [
             'traefik_traefik.2.1idw12p2yqpxutlzkcwign4at ! running ! healthy ! 0        ! 4W 1D  ! [OK]',
         ],
+    },
+    {
+        # Podman stamps StartedAt in the local time of the host, so the uptime
+        # has to be derived from the offset the value carries. Reading it as UTC
+        # moves the uptime by that offset, and turns it negative for a container
+        # younger than the offset.
+        'id': 'ok-local-timezone-uptime',
+        'test': 'stdout/local-timezone,,0',
+        'assert-retc': STATE_OK,
+        # started 07:00+02:00, which is 05:00 UTC, three hours before the
+        # reference time the plugin pins in test mode
+        'assert-in': ['app-local-tz ! running ! -      ! 0        ! 2h 59m ! [OK]'],
+        # what reading the same value as UTC would produce
+        'assert-not-in': ['! 1h '],
+    },
+    {
+        # a container removed between `podman ps` and `podman inspect` makes the
+        # command fail while the containers it did find are still reported
+        'id': 'ok-inspect-partially-failed',
+        'test': 'stdout/one-container-traefik,stderr/one-container-traefik,125',
+        'assert-retc': STATE_OK,
+        'assert-in': ['Everything is ok, 1 container checked (user: `'],
+    },
+    {
+        # nothing usable came back at all, so the engine could not be asked
+        'id': 'crit-inspect-failed',
+        'test': ',stderr/one-container-traefik,125',
+        'assert-retc': STATE_CRIT,
+        'assert-in': ['no such object'],
     },
     {
         'id': 'crit-mixed-unhealthy-by-default',

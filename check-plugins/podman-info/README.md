@@ -3,11 +3,11 @@
 
 ## Overview
 
-Displays system-wide Podman information including container counts, image count, storage driver, runtime version, available CPUs, and total memory. For Docker, use the [docker-info](https://github.com/Linuxfabrik/monitoring-plugins/tree/main/check-plugins/docker-info) check instead.
+Displays system-wide Podman information including container counts, image count, storage driver, logging driver, number of search registries, runtime version, available CPUs, and total memory. Alerts on the warnings and errors Podman writes while answering. Individual lines can be filtered out with --ignore (e.g. benign cgroup warnings on rootless hosts). For Docker, use the [docker-info](https://github.com/Linuxfabrik/monitoring-plugins/tree/main/check-plugins/docker-info) check instead.
 
 **Important Notes:**
 
-* Podman runs rootless by default, and every user keeps their containers and images in their own storage. Running the check as root (via `sudo`) reports on root's own Podman, not on the rootless containers of other users. To report on a rootless user's Podman, pass `--user=<name>`: the check then runs podman as that user. Every line of output names the inspected user, so an empty result against root's storage is obvious.
+* Podman runs rootless by default, and every user keeps their containers and images in their own storage. Running the check as root (via `sudo`) reports on root's own Podman, not on the rootless containers of other users. To report on a rootless user's Podman, pass `--user=<name>`: the check then runs podman as that user. Every line of output names the inspected user, so an empty result against root's storage is obvious. The Podman Service Set in the Icinga Director creates its services without `--user`. Set it on the service of every host whose containers belong to a rootless user, otherwise a tagged host reports "No containers to check" while the containers are running.
 
 **Data Collection:**
 
@@ -34,11 +34,11 @@ usage: podman-info [-h] [-V] [--always-ok] [--ignore IGNORE] [--no-perfdata]
                    [--user USER]
 
 Displays system-wide Podman information including container counts, image
-count, storage driver, runtime version, available CPUs, and total memory. Also
-monitors the Podman daemon stderr for warnings and errors. Individual stderr
-lines can be filtered out with --ignore (e.g. benign cgroup warnings on
-rootless hosts). For Docker, use the docker-info check instead. Requires root
-or sudo.
+count, storage driver, logging driver, number of search registries, runtime
+version, available CPUs, and total memory. Alerts on the warnings and errors
+Podman writes while answering. Individual lines can be filtered out with
+--ignore (e.g. benign cgroup warnings on rootless hosts). For Docker, use the
+docker-info check instead. Requires root or sudo.
 
 options:
   -h, --help       show this help message and exit
@@ -86,6 +86,8 @@ Output:
 * OK if `podman info` completes without warnings or errors.
 * WARN on `podman info` warnings in stderr.
 * CRIT on `podman info` errors in stderr or return codes != 0.
+* UNKNOWN if the check may not talk to the container engine. The engine is answering, this check is only not allowed to ask, so it says nothing about it and names the sudoers file instead.
+* UNKNOWN if the answer cannot be read, or reports no version at all.
 * `--always-ok` suppresses all alerts and always returns OK.
 
 
