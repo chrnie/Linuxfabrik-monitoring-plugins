@@ -230,6 +230,7 @@
                 "redis_status_no_perfdata": false,
                 "redis_status_path": "/usr/bin/icingadb-redis-cli",
                 "redis_status_port": "6380",
+                "redis_status_socket": "/var/run/icingadb-redis/redis-server.sock",
                 "redis_status_tls": false,
                 "redis_status_verbose": false,
                 "redis_status_warning": 90

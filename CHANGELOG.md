@@ -91,6 +91,8 @@ Monitoring Plugins:
 * mysql-innodb-log-waits: alerts only on real InnoDB log waits
 * php-status: warns when `post_max_size` is not larger than `upload_max_filesize`, which silently breaks file uploads ([#516](https://github.com/Linuxfabrik/monitoring-plugins/issues/516))
 * redis-status: `--cert` and `--key` authenticate the check against a server configured with `tls-auth-clients yes`, which previously failed with a bare "I/O error"
+* redis-status: `--path` selects the `redis-cli` binary, so distributions shipping a prefixed client such as `icingadb-redis-cli` can be monitored
+* redis-version: `--path` selects the `redis-server` binary, so distributions shipping a prefixed server such as `icingadb-redis-server` can be monitored
 * snmp: `--device` also accepts an absolute path ([#1308](https://github.com/Linuxfabrik/monitoring-plugins/issues/1308))
 * podman-info: the reported logging driver is the one containers log through, not the event logger
 * podman-stats: CPU usage is the load since the previous check run instead of the average since the container started, so a container that is busy now shows it. The first run after the update reports no CPU value yet
@@ -98,7 +100,7 @@ Monitoring Plugins:
 Icinga Director:
 
 * huawei-dorado-disk, -host and -hypermetropair hide the items within their thresholds, so re-import the basket
-* the Icinga DB Redis Service Set imports the new `tpl-service-icingadb-redis-status` and `tpl-service-icingadb-redis-version` templates, which carry the `icingadb-` binary paths and port 6380, so re-import the basket
+* the Icinga DB Redis Service Set imports the new `tpl-service-icingadb-redis-status` and `tpl-service-icingadb-redis-version` templates, which carry the `icingadb-` binary paths and connect through the Unix socket at `/var/run/icingadb-redis/redis-server.sock`, so re-import the basket
 * the WordPress service set, its services and the WordPress host tag are spelled the way WordPress spells itself, so re-tag the affected hosts after importing the basket
 
 ### Fixed
