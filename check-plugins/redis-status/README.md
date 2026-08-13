@@ -9,11 +9,12 @@ Monitors a Redis server via the `INFO` command, reporting memory usage, fragment
 
 * Tested on Redis 3.0+
 * Requires the `redis-cli` command-line tool
+* Redis distributions that ship a prefixed client binary are supported via `--path`. For Icinga DB Redis, use `--path=/usr/bin/icingadb-redis-cli --port=6380`.
 * "I'm here to keep you safe, Sam. I want to help you." comes from the character GERTY in the movie "Moon" (2009)
 
 **Data Collection:**
 
-* Executes `redis-cli info default` and `redis-cli memory doctor` against the target Redis instance
+* Executes `redis-cli info default` and `redis-cli memory doctor` against the target Redis instance, using the client binary given by `--path`
 * Connects via hostname/port (default: 127.0.0.1:6379) or Unix socket
 * Supports authentication (username/password) and TLS connections
 * Reads OS-level settings from `/proc/sys/vm/overcommit_memory`, `/sys/kernel/mm/transparent_hugepage/enabled`, `/proc/sys/net/core/somaxconn`, and `/proc/sys/net/ipv4/tcp_max_syn_backlog`
@@ -29,7 +30,7 @@ Monitors a Redis server via the `INFO` command, reporting memory usage, fragment
 | Can be called without parameters      | Yes |
 | Runs on                               | Linux |
 | Compiled for Windows                  | No |
-| Requirements                          | command-line tool `redis-cli` |
+| Requirements                          | command-line tool `redis-cli` (or a prefixed variant such as `icingadb-redis-cli`, see `--path`) |
 
 
 ## Help
@@ -38,9 +39,9 @@ Monitors a Redis server via the `INFO` command, reporting memory usage, fragment
 usage: redis-status [-h] [-V] [--always-ok] [--cacert CACERT] [-c CRIT]
                     [-H HOSTNAME] [--ignore-maxmemory0] [--ignore-overcommit]
                     [--ignore-somaxconn] [--ignore-sync-partial-err]
-                    [--ignore-thp] [--no-perfdata] [-p PASSWORD] [--port PORT]
-                    [--socket SOCKET] [--tls] [--username USERNAME]
-                    [--verbose] [-w WARN]
+                    [--ignore-thp] [--no-perfdata] [-p PASSWORD] [--path PATH]
+                    [--port PORT] [--socket SOCKET] [--tls]
+                    [--username USERNAME] [--verbose] [-w WARN]
 
 Monitors a Redis server via the INFO command. Reports memory usage,
 fragmentation ratio, keyspace hit rate, connected clients, replication status,
@@ -77,6 +78,10 @@ options:
                         dropped.
   -p, --password PASSWORD
                         Password for Redis server authentication.
+  --path PATH           Local path to your redis-cli binary, or its bare name
+                        if it is in $PATH. Set this for Redis distributions
+                        shipping a prefixed binary, for example
+                        "/usr/bin/icingadb-redis-cli". Default: redis-cli
   --port PORT           Redis server port. Default: 6379
   --socket SOCKET       Redis server Unix socket path. Overrides --hostname
                         and --port.
@@ -125,6 +130,14 @@ there is no issue. Otherwise, make sure you are using the Jemalloc allocator and
 libc malloc. Note: The currently used allocator is "jemalloc-5.1.0".
 
 I'm here to keep you safe, Sam. I want to help you.
+```
+
+Monitoring the Redis instance that ships with Icinga DB, which installs its binaries with an `icingadb-` prefix and listens on port 6380. The output is the same as above, since the check talks to an ordinary Redis server:
+
+```bash
+./redis-status \
+    --path=/usr/bin/icingadb-redis-cli \
+    --port=6380
 ```
 
 

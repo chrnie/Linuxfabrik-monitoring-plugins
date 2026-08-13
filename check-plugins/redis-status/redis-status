@@ -26,7 +26,7 @@ from lib.globals import STATE_OK, STATE_UNKNOWN, STATE_WARN
 __author__ = """
 Linuxfabrik GmbH, Zurich/Switzerland;
 """
-__version__ = '2026071201'
+__version__ = '2026081301'
 
 DESCRIPTION = """Monitors a Redis server via the INFO command. Reports memory usage, fragmentation ratio,
 keyspace hit rate, connected clients, replication status, and persistence state. Alerts
@@ -42,6 +42,7 @@ DEFAULT_IGNORE_OVERCOMMIT = False
 DEFAULT_IGNORE_SOMAXCONN = False
 DEFAULT_IGNORE_SYNCPARTIALERR = False
 DEFAULT_IGNORE_THP = False
+DEFAULT_PATH = 'redis-cli'
 DEFAULT_PORT = '6379'
 DEFAULT_VERBOSE = False
 DEFAULT_WARN = 90
@@ -160,6 +161,16 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--path',
+        help='Local path to your redis-cli binary, or its bare name if it is in $PATH. '
+        'Set this for Redis distributions shipping a prefixed binary, '
+        'for example "/usr/bin/icingadb-redis-cli". '
+        'Default: %(default)s',
+        dest='PATH',
+        default=DEFAULT_PATH,
+    )
+
+    parser.add_argument(
         '--port',
         help='Redis server port. Default: %(default)s',
         dest='PORT',
@@ -226,7 +237,7 @@ def main():
         sys.exit(STATE_UNKNOWN)
 
     # build the base x-cli command line
-    base_cmd = ['redis-cli']
+    base_cmd = [lib.base.coe(lib.shell.safe_cli_value(args.PATH, '--path'))]
     if not args.SOCKET:
         base_cmd += ['-h', args.HOSTNAME, '-p', str(args.PORT)]
     else:
@@ -248,7 +259,7 @@ def main():
         # do not echo the full cmd, it may contain the password
         if retc != 0:
             lib.base.oao(
-                f'`redis-cli info default` failed (exit {retc}): {stderr.strip()}',
+                f'`{args.PATH} info default` failed (exit {retc}): {stderr.strip()}',
                 STATE_WARN,
                 always_ok=args.ALWAYS_OK,
             )
@@ -278,7 +289,7 @@ def main():
         except Exception:
             continue
 
-    # fetch data using `valkey-cli memory doctor`
+    # fetch data using `redis-cli memory doctor`
     result['memory_doctor'] = 'Hi Sam'
     if args.TEST is None:
         cmd = [*base_cmd, 'memory', 'doctor']
@@ -286,7 +297,7 @@ def main():
         # do not echo the full cmd, it may contain the password
         if retc != 0:
             lib.base.oao(
-                f'`redis-cli memory doctor` failed (exit {retc}): {stderr.strip()}',
+                f'`{args.PATH} memory doctor` failed (exit {retc}): {stderr.strip()}',
                 STATE_WARN,
                 always_ok=args.ALWAYS_OK,
             )
