@@ -63,6 +63,7 @@ Monitoring Plugins:
 
 Icinga Director:
 
+* `Icinga DB Redis Service Set` (host tag `icingadb-redis`) for the Redis instance shipped with Icinga DB, which listens on port 6380 and installs its binaries with an `icingadb-` prefix
 * `Icinga Web 2 Service Set` (host tag `icingaweb2`) for hosts running the Icinga Web 2 interface
 * `Lynis Service Set` (host tag `lynis`) for the host that runs the subnet security audits. Tag one host, not every host carrying the package
 * `OpenJDK Service Set` (host tag `openjdk`) for hosts running a Red Hat OpenJDK

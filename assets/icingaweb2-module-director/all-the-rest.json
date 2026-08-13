@@ -1037,6 +1037,12 @@
                 },
                 {
                     "allowed_roles": null,
+                    "entry_name": "icingadb-redis",
+                    "entry_value": "Icinga DB Redis",
+                    "format": "string"
+                },
+                {
+                    "allowed_roles": null,
                     "entry_name": "icingaweb2",
                     "entry_value": "Icinga Web 2",
                     "format": "string"
@@ -9492,6 +9498,157 @@
                 }
             },
             "uuid": "8a818a1b-f345-4572-82d9-1f20249c7fc8"
+        },
+        "Icinga DB Redis Service Set": {
+            "assign_filter": "\"icingadb-redis\"=host.vars.tags",
+            "description": null,
+            "object_name": "Icinga DB Redis Service Set",
+            "object_type": "template",
+            "services": {
+                "Icinga DB Redis Status": {
+                    "action_url": null,
+                    "apply_for": null,
+                    "assign_filter": null,
+                    "check_command": null,
+                    "check_interval": null,
+                    "check_period": null,
+                    "check_timeout": null,
+                    "command_endpoint": null,
+                    "disabled": false,
+                    "display_name": null,
+                    "enable_active_checks": null,
+                    "enable_event_handler": null,
+                    "enable_flapping": null,
+                    "enable_notifications": null,
+                    "enable_passive_checks": null,
+                    "enable_perfdata": null,
+                    "event_command": null,
+                    "fields": [],
+                    "flapping_threshold_high": null,
+                    "flapping_threshold_low": null,
+                    "groups": [],
+                    "host": null,
+                    "icon_image": null,
+                    "icon_image_alt": null,
+                    "imports": [
+                        "tpl-service-redis-status"
+                    ],
+                    "max_check_attempts": null,
+                    "notes": null,
+                    "notes_url": null,
+                    "object_name": "Icinga DB Redis Status",
+                    "object_type": "object",
+                    "retry_interval": null,
+                    "service_set": null,
+                    "template_choice": null,
+                    "use_agent": null,
+                    "use_var_overrides": null,
+                    "uuid": "2a19e2ce-7e3e-414c-971e-7fd7506f9f70",
+                    "vars": {
+                        "redis_status_path": "/usr/bin/icingadb-redis-cli",
+                        "redis_status_port": "6380"
+                    },
+                    "volatile": null,
+                    "zone": null
+                },
+                "Icinga DB Redis Version": {
+                    "action_url": null,
+                    "apply_for": null,
+                    "assign_filter": null,
+                    "check_command": null,
+                    "check_interval": null,
+                    "check_period": null,
+                    "check_timeout": null,
+                    "command_endpoint": null,
+                    "disabled": false,
+                    "display_name": null,
+                    "enable_active_checks": null,
+                    "enable_event_handler": null,
+                    "enable_flapping": null,
+                    "enable_notifications": null,
+                    "enable_passive_checks": null,
+                    "enable_perfdata": null,
+                    "event_command": null,
+                    "fields": [],
+                    "flapping_threshold_high": null,
+                    "flapping_threshold_low": null,
+                    "groups": [],
+                    "host": null,
+                    "icon_image": null,
+                    "icon_image_alt": null,
+                    "imports": [
+                        "tpl-service-redis-version"
+                    ],
+                    "max_check_attempts": null,
+                    "notes": null,
+                    "notes_url": null,
+                    "object_name": "Icinga DB Redis Version",
+                    "object_type": "object",
+                    "retry_interval": null,
+                    "service_set": null,
+                    "template_choice": null,
+                    "use_agent": null,
+                    "use_var_overrides": null,
+                    "uuid": "93c3decb-a795-43af-aec1-4f4bba756e80",
+                    "vars": {
+                        "redis_version_path": "/usr/bin/icingadb-redis-server"
+                    },
+                    "volatile": null,
+                    "zone": null
+                },
+                "Systemd Unit - icingadb-redis.service": {
+                    "action_url": null,
+                    "apply_for": null,
+                    "assign_filter": null,
+                    "check_command": null,
+                    "check_interval": null,
+                    "check_period": null,
+                    "check_timeout": null,
+                    "command_endpoint": null,
+                    "disabled": false,
+                    "display_name": null,
+                    "enable_active_checks": null,
+                    "enable_event_handler": null,
+                    "enable_flapping": null,
+                    "enable_notifications": null,
+                    "enable_passive_checks": null,
+                    "enable_perfdata": null,
+                    "event_command": null,
+                    "fields": [],
+                    "flapping_threshold_high": null,
+                    "flapping_threshold_low": null,
+                    "groups": [],
+                    "host": null,
+                    "icon_image": null,
+                    "icon_image_alt": null,
+                    "imports": [
+                        "tpl-service-systemd-unit"
+                    ],
+                    "max_check_attempts": null,
+                    "notes": null,
+                    "notes_url": null,
+                    "object_name": "Systemd Unit - icingadb-redis.service",
+                    "object_type": "object",
+                    "retry_interval": null,
+                    "service_set": null,
+                    "template_choice": null,
+                    "use_agent": null,
+                    "use_var_overrides": null,
+                    "uuid": "eca657db-ace8-49b4-8fb0-8cce35b8133f",
+                    "vars": {
+                        "systemd_unit_activestate": [
+                            "active"
+                        ],
+                        "systemd_unit_substate": [
+                            "running"
+                        ],
+                        "systemd_unit_unit": "icingadb-redis.service"
+                    },
+                    "volatile": null,
+                    "zone": null
+                }
+            },
+            "uuid": "28112c0e-10f8-45b6-a4bb-a4f04af4b6dc"
         },
         "InfluxDB Service Set": {
             "assign_filter": "\"influxdb\"=host.vars.tags",
