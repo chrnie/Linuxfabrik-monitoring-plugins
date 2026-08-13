@@ -9653,7 +9653,7 @@
                     "icon_image": null,
                     "icon_image_alt": null,
                     "imports": [
-                        "tpl-service-redis-status"
+                        "tpl-service-icingadb-redis-status"
                     ],
                     "max_check_attempts": null,
                     "notes": null,
@@ -9666,10 +9666,7 @@
                     "use_agent": null,
                     "use_var_overrides": null,
                     "uuid": "2a19e2ce-7e3e-414c-971e-7fd7506f9f70",
-                    "vars": {
-                        "redis_status_path": "/usr/bin/icingadb-redis-cli",
-                        "redis_status_port": "6380"
-                    },
+                    "vars": {},
                     "volatile": null,
                     "zone": null
                 },
@@ -9699,7 +9696,7 @@
                     "icon_image": null,
                     "icon_image_alt": null,
                     "imports": [
-                        "tpl-service-redis-version"
+                        "tpl-service-icingadb-redis-version"
                     ],
                     "max_check_attempts": null,
                     "notes": null,
@@ -9712,9 +9709,7 @@
                     "use_agent": null,
                     "use_var_overrides": null,
                     "uuid": "93c3decb-a795-43af-aec1-4f4bba756e80",
-                    "vars": {
-                        "redis_version_path": "/usr/bin/icingadb-redis-server"
-                    },
+                    "vars": {},
                     "volatile": null,
                     "zone": null
                 },
