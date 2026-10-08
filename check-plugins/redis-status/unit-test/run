@@ -15,7 +15,7 @@ sys.path.insert(0, '..')
 import unittest
 
 import lib.lftest
-from lib.globals import STATE_OK, STATE_WARN
+from lib.globals import STATE_OK, STATE_UNKNOWN, STATE_WARN
 
 TESTS = [
     {
@@ -79,6 +79,20 @@ TESTS = [
             'hit rate 100.0% (4.5M hits, 0 misses)',
             '2.0 denied partial resync requests',
         ],
+    },
+    {
+        'id': 'unknown-cert-without-tls',
+        'test': 'stdout/redis-6.0-standalone,,0',
+        'params': '--cert=/tmp/client.crt --key=/tmp/client.key',
+        'assert-retc': STATE_UNKNOWN,
+        'assert-in': ['`--cert` and `--key` require `--tls`.'],
+    },
+    {
+        'id': 'unknown-cert-without-key',
+        'test': 'stdout/redis-6.0-standalone,,0',
+        'params': '--tls --cert=/tmp/client.crt',
+        'assert-retc': STATE_UNKNOWN,
+        'assert-in': ['`--cert` and `--key` have to be given together.'],
     },
 ]
 

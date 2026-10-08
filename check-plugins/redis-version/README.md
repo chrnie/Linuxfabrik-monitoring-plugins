@@ -8,6 +8,7 @@ Checks the installed Redis version against the endoflife.date API and alerts if 
 **Important Notes:**
 
 * The check must run locally on the Redis server because it runs the Redis binary to read its version.
+* Redis distributions that ship a prefixed server binary are supported via `--path`. For Icinga DB Redis, use `--path=/usr/bin/icingadb-redis-server`.
 
 **Data Collection:**
 
@@ -70,7 +71,10 @@ options:
                         Alert n days before ("-30") or after an EOL date ("30"
                         or "+30"). Default: -30 days
   --path PATH           Path to the Redis binary. Resolved via $PATH when
-                        given without a directory. Default: redis-server
+                        given without a directory. Set this for Redis
+                        distributions shipping a prefixed binary, for example
+                        "/usr/bin/icingadb-redis-server". Default: redis-
+                        server
   --proxy PROXY         Proxy to reach the target through. The scheme defaults
                         to `http` when omitted. Overrides the proxy the
                         environment names (`http_proxy`, `https_proxy`,
@@ -104,6 +108,12 @@ Output:
 
 ```text
 Redis v7.0.13 (EOL unknown, minor 7.2.1 available)
+```
+
+Checking the Redis instance that ships with Icinga DB, which installs its binaries with an `icingadb-` prefix:
+
+```bash
+./redis-version --path=/usr/bin/icingadb-redis-server
 ```
 
 

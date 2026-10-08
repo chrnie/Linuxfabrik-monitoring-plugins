@@ -283,7 +283,7 @@
         "9": {
             "varname": "redis_version_path",
             "caption": "Redis Version: Path",
-            "description": "Path to the Redis binary. Resolved via $PATH when given without a directory.",
+            "description": "Path to the Redis binary. Resolved via $PATH when given without a directory. Set this for Redis distributions shipping a prefixed binary, for example \"/usr/bin/icingadb-redis-server\".",
             "datatype": "Icinga\\Module\\Director\\DataType\\DataTypeString",
             "format": null,
             "settings": {

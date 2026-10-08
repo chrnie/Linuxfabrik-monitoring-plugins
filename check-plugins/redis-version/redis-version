@@ -22,7 +22,7 @@ import lib.version
 from lib.globals import STATE_UNKNOWN
 
 __author__ = 'Linuxfabrik GmbH, Zurich/Switzerland'
-__version__ = '2026100101'
+__version__ = '2026100801'
 
 DESCRIPTION = """Checks the installed Redis version against the endoflife.date API and alerts if the
 version is end-of-life or if newer major, minor, or patch releases are available. By
@@ -122,6 +122,8 @@ def parse_args():
         '--path',
         help='Path to the Redis binary. '
         'Resolved via $PATH when given without a directory. '
+        'Set this for Redis distributions shipping a prefixed binary, '
+        'for example "/usr/bin/icingadb-redis-server". '
         'Default: %(default)s',
         dest='PATH',
         default=DEFAULT_PATH,
@@ -189,7 +191,8 @@ def main():
         sys.exit(STATE_UNKNOWN)
 
     # fetch data
-    installed_version = get_installed_version(args.PATH, args.TEST)
+    path = lib.base.coe(lib.shell.safe_cli_value(args.PATH, '--path'))
+    installed_version = get_installed_version(path, args.TEST)
     if not installed_version:
         lib.base.cu(
             f'Redis not found at `{args.PATH}`. Use --path to point at the binary.'

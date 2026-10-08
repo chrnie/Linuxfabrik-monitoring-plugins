@@ -26,7 +26,7 @@ from lib.globals import STATE_OK, STATE_UNKNOWN, STATE_WARN
 __author__ = """
 Linuxfabrik GmbH, Zurich/Switzerland;
 """
-__version__ = '2026083001'
+__version__ = '2026100801'
 
 DESCRIPTION = """Monitors a Redis server via the INFO command. Reports memory usage, fragmentation ratio,
 keyspace hit rate, connected clients, replication status, and persistence state. Alerts
@@ -42,6 +42,7 @@ DEFAULT_IGNORE_OVERCOMMIT = False
 DEFAULT_IGNORE_SOMAXCONN = False
 DEFAULT_IGNORE_SYNCPARTIALERR = False
 DEFAULT_IGNORE_THP = False
+DEFAULT_PATH = 'redis-cli'
 DEFAULT_PORT = '6379'
 DEFAULT_VERBOSE = False
 DEFAULT_WARN = 90
@@ -77,6 +78,14 @@ def parse_args():
         'Default: %(default)s',
         dest='CACERT',
         default=DEFAULT_CACERT,
+    )
+
+    parser.add_argument(
+        '--cert',
+        help='Client certificate file to authenticate with. '
+        'Required if the server is configured with `tls-auth-clients yes`. '
+        'Requires `--tls` and `--key`.',
+        dest='CERT',
     )
 
     parser.add_argument(
@@ -140,6 +149,13 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--key',
+        help='Private key file matching `--cert`. '
+        'Requires `--tls` and `--cert`.',
+        dest='KEY',
+    )
+
+    parser.add_argument(
         '--no-perfdata',
         help=lib.args.help('--no-perfdata'),
         dest='NO_PERFDATA',
@@ -152,6 +168,17 @@ def parse_args():
         '--password',
         help='Password for Redis server authentication.',
         dest='PASSWORD',
+    )
+
+    parser.add_argument(
+        '--path',
+        help='Path to the redis-cli binary. '
+        'Resolved via $PATH when given without a directory. '
+        'Set this for Redis distributions shipping a prefixed binary, '
+        'for example "/usr/bin/icingadb-redis-cli". '
+        'Default: %(default)s',
+        dest='PATH',
+        default=DEFAULT_PATH,
     )
 
     parser.add_argument(
@@ -220,8 +247,14 @@ def main():
     except SystemExit:
         sys.exit(STATE_UNKNOWN)
 
+    # validate the client certificate options
+    if (args.CERT or args.KEY) and not args.TLS:
+        lib.base.cu('`--cert` and `--key` require `--tls`.')
+    if bool(args.CERT) != bool(args.KEY):
+        lib.base.cu('`--cert` and `--key` have to be given together.')
+
     # build the base x-cli command line
-    base_cmd = ['redis-cli']
+    base_cmd = [lib.base.coe(lib.shell.safe_cli_value(args.PATH, '--path'))]
     if not args.SOCKET:
         base_cmd += ['-h', args.HOSTNAME, '-p', str(args.PORT)]
     else:
@@ -235,6 +268,8 @@ def main():
             base_cmd += ['-a', args.PASSWORD]
     if args.TLS:
         base_cmd += ['--tls', '--cacert', args.CACERT]
+        if args.CERT:
+            base_cmd += ['--cert', args.CERT, '--key', args.KEY]
 
     # fetch data using `x-cli info default`
     if args.TEST is None:
@@ -243,7 +278,7 @@ def main():
         # do not echo the full cmd, it may contain the password
         if retc != 0:
             lib.base.oao(
-                f'`redis-cli info default` failed (exit {retc}): {stderr.strip()}',
+                f'`{args.PATH} info default` failed (exit {retc}): {stderr.strip()}',
                 STATE_WARN,
                 always_ok=args.ALWAYS_OK,
             )
@@ -273,7 +308,7 @@ def main():
         except Exception:
             continue
 
-    # fetch data using `valkey-cli memory doctor`
+    # fetch data using `redis-cli memory doctor`
     result['memory_doctor'] = 'Hi Sam'
     if args.TEST is None:
         cmd = [*base_cmd, 'memory', 'doctor']
@@ -281,7 +316,7 @@ def main():
         # do not echo the full cmd, it may contain the password
         if retc != 0:
             lib.base.oao(
-                f'`redis-cli memory doctor` failed (exit {retc}): {stderr.strip()}',
+                f'`{args.PATH} memory doctor` failed (exit {retc}): {stderr.strip()}',
                 STATE_WARN,
                 always_ok=args.ALWAYS_OK,
             )

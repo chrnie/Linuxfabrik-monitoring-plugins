@@ -21,6 +21,7 @@ Monitoring Plugins:
 Icinga Director:
 
 * Fangfrisch Service Set for the unofficial ClamAV signatures
+* Icinga DB Redis Service Set for the Redis instance that ships with Icinga DB
 * InfluxDB Dump, MongoDB Dump and PostgreSQL Dump Service Sets for the scheduled database dumps
 * one Basic Service Set per Windows version, from Windows 10 to Server 2025
 * system-update Security Lane Service Set for the daily security hot-fixes on Rocky Linux, activated by the `system-update-security` tag
@@ -43,6 +44,7 @@ Monitoring Plugins:
 * php-fpm-ping: a ping page that cannot be fetched raises `--severity` instead of UNKNOWN
 * php-fpm-status: the pool table shows the state of each pool in its last column
 * redfish-sensors: CRIT only above the fatal threshold, as HPE iLO rates it, and alerts on degraded power supplies
+* redis-status: authenticates with a client certificate against a server with `tls-auth-clients yes`
 * scanrootkit: detects 23 more rootkits and implants, no false SunOS Rootkit alarm on Fedora 44
 * scheduled-task: alerts on a failed last run, works on non-English Windows, `--status` replaces the default list
 * systemd-timedate-status: warns when the system clock is not synchronized to a time source

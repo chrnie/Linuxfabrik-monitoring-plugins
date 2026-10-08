@@ -9,13 +9,15 @@ Monitors a Redis server via the `INFO` command, reporting memory usage, fragment
 
 * Tested on Redis 3.0+
 * Requires the `redis-cli` command-line tool
+* Redis distributions that ship a prefixed client binary are supported via `--path`. For Icinga DB Redis, use `--path=/usr/bin/icingadb-redis-cli --port=6380`.
+* If the server is configured with `tls-auth-clients yes`, it rejects clients that do not present a certificate. Pass `--cert` and `--key` in addition to `--cacert`, and make sure the key file is readable by the user running the check.
 * "I'm here to keep you safe, Sam. I want to help you." comes from the character GERTY in the movie "Moon" (2009)
 
 **Data Collection:**
 
-* Executes `redis-cli info default` and `redis-cli memory doctor` against the target Redis instance
+* Executes `redis-cli info default` and `redis-cli memory doctor` against the target Redis instance, using the client binary given by `--path`
 * Connects via hostname/port (default: 127.0.0.1:6379) or Unix socket
-* Supports authentication (username/password) and TLS connections
+* Supports authentication (username/password) and TLS connections, including mutual TLS with a client certificate
 * Reads OS-level settings from `/proc/sys/vm/overcommit_memory`, `/sys/kernel/mm/transparent_hugepage/enabled`, `/proc/sys/net/core/somaxconn`, and `/proc/sys/net/ipv4/tcp_max_syn_backlog`
 
 
@@ -29,17 +31,18 @@ Monitors a Redis server via the `INFO` command, reporting memory usage, fragment
 | Can be called without parameters      | Yes |
 | Runs on                               | Linux |
 | Compiled for Windows                  | No |
-| Requirements                          | command-line tool `redis-cli` |
+| Requirements                          | command-line tool `redis-cli` (or a prefixed variant such as `icingadb-redis-cli`, see `--path`) |
 | Uses State File                       | `$TEMP/linuxfabrik-monitoring-plugins-redis-status.db` |
 
 
 ## Help
 
 ```text
-usage: redis-status [-h] [-V] [--always-ok] [--cacert CACERT] [-c CRIT]
-                    [-H HOSTNAME] [--ignore-maxmemory0] [--ignore-overcommit]
-                    [--ignore-somaxconn] [--ignore-sync-partial-err]
-                    [--ignore-thp] [--no-perfdata] [-p PASSWORD] [--port PORT]
+usage: redis-status [-h] [-V] [--always-ok] [--cacert CACERT] [--cert CERT]
+                    [-c CRIT] [-H HOSTNAME] [--ignore-maxmemory0]
+                    [--ignore-overcommit] [--ignore-somaxconn]
+                    [--ignore-sync-partial-err] [--ignore-thp] [--key KEY]
+                    [--no-perfdata] [-p PASSWORD] [--path PATH] [--port PORT]
                     [--socket SOCKET] [--tls] [--username USERNAME]
                     [--verbose] [-w WARN]
 
@@ -55,6 +58,9 @@ options:
   --always-ok           Always returns OK.
   --cacert CACERT       CA certificate file for TLS verification. Requires
                         `--tls`. Default: /etc/pki/tls/certs/rootCA.pem
+  --cert CERT           Client certificate file to authenticate with. Required
+                        if the server is configured with `tls-auth-clients
+                        yes`. Requires `--tls` and `--key`.
   -c, --critical CRIT   CRIT threshold for memory usage as a percentage.
                         Default: >= None
   -H, --hostname HOSTNAME
@@ -72,12 +78,18 @@ options:
                         expected.
   --ignore-thp          Suppress the warning about transparent huge pages
                         being enabled.
+  --key KEY             Private key file matching `--cert`. Requires `--tls`
+                        and `--cert`.
   --no-perfdata         Suppress the performance data section from the output.
                         The status message and the exit code are unaffected,
                         so alerting keeps working while trending data is
                         dropped.
   -p, --password PASSWORD
                         Password for Redis server authentication.
+  --path PATH           Path to the redis-cli binary. Resolved via $PATH when
+                        given without a directory. Set this for Redis
+                        distributions shipping a prefixed binary, for example
+                        "/usr/bin/icingadb-redis-cli". Default: redis-cli
   --port PORT           Redis server port. Default: 6379
   --socket SOCKET       Redis server Unix socket path. Overrides --hostname
                         and --port.
@@ -126,6 +138,27 @@ there is no issue. Otherwise, make sure you are using the Jemalloc allocator and
 libc malloc. Note: The currently used allocator is "jemalloc-5.1.0".
 
 I'm here to keep you safe, Sam. I want to help you.
+```
+
+Monitoring the Redis instance that ships with Icinga DB, which installs its binaries with an `icingadb-` prefix and listens on port 6380. The output is the same as above, since the check talks to an ordinary Redis server:
+
+```bash
+./redis-status \
+    --path=/usr/bin/icingadb-redis-cli \
+    --port=6380
+```
+
+The same instance with TLS enabled and `tls-auth-clients yes`, so the check has to authenticate itself with a client certificate:
+
+```bash
+./redis-status \
+    --path=/usr/bin/icingadb-redis-cli \
+    --port=6380 \
+    --tls \
+    --cacert=/etc/pki/icinga/ca.crt \
+    --cert=/etc/pki/icinga/certs/redis-client.crt \
+    --key=/etc/pki/icinga/private/redis-client.key \
+    --password=SECRET
 ```
 
 
